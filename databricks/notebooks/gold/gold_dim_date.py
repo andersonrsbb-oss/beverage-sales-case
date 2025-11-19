@@ -47,8 +47,3 @@ df_dim_date = (
     )
 )
 df_dim_date.write.format("delta").mode("overwrite").saveAsTable("hive_metastore.beverage_gold.gld_tab_dim_date")
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC select * from hive_metastore.beverage_gold.gld_tab_dim_date

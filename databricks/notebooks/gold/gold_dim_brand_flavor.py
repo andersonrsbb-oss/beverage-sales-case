@@ -17,8 +17,3 @@ dim_brand_flavor = (
     .select("sk_brand", "cd_brand_flavor", "nm_brand")
 )
 dim_brand_flavor.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable("hive_metastore.beverage_gold.gld_tab_dim_brand_flavor")
-
-# COMMAND ----------
-
-# MAGIC %sql 
-# MAGIC select * from hive_metastore.beverage_gold.gld_tab_dim_brand_flavor

@@ -80,8 +80,3 @@ df_channel_group_final = (
 # COMMAND ----------
 
 df_channel_group_final.write.mode("overwrite").saveAsTable("hive_metastore.beverage_silver.slv_tab_channel_group")
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC select * from hive_metastore.beverage_silver.slv_tab_channel_group
