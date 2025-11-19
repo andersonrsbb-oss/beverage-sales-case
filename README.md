@@ -20,22 +20,7 @@ Explicar como construí uma arquitetura escalável que atende os requisitos do c
   - Databricks → Silver (Delta limpo) → Gold (fato, dimensões, summary tables) → Queries analíticas
 
 # Estrutura do Repositório
-  ├── README.md
-  ├── adf/
-  │   ├── factory/
-  │   └── linkedTemplates/
-  │   └── ARMTemplateForFactory.json
-  │   └── ARMTemplateParametersForFactory.json
-  ├── databricks/
-  │   ├── config/
-  │   │   ├── mount_data_lake.py
-  │   ├── notebooks/
-  │   │   ├── bronze/
-  │   │   ├── gold/
-  │   │   └── silver/
-  │   └── ddl/
-  │       ├── create_database.py
-  └── .gitignore
+<img width="313" height="405" alt="image" src="https://github.com/user-attachments/assets/a16b4995-b530-4348-a637-ea117d9c8e19" />
 
 
 # Queries do Business Case
