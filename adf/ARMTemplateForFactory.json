@@ -1,0 +1,750 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "factoryName": {
+            "type": "string",
+            "metadata": "Data Factory name",
+            "defaultValue": "adf-dataengineering-prd"
+        },
+        "LS_dataengineering_ADLS_accountKey": {
+            "type": "secureString",
+            "metadata": "Secure string for 'accountKey' of 'LS_dataengineering_ADLS'"
+        },
+        "LS_dataengineering_ADLS_properties_typeProperties_url": {
+            "type": "string",
+            "defaultValue": "https://adlsdataengineeringprd.dfs.core.windows.net/"
+        },
+        "LS_dataengineering_ADB_properties_typeProperties_existingClusterId": {
+            "type": "string",
+            "defaultValue": "1118-001621-1nzk7btu"
+        }
+    },
+    "variables": {
+        "factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+    },
+    "resources": [
+        {
+            "name": "[concat(parameters('factoryName'), '/LS_dataengineering_ADLS')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "type": "AzureBlobFS",
+                "typeProperties": {
+                    "url": "[parameters('LS_dataengineering_ADLS_properties_typeProperties_url')]",
+                    "accountKey": {
+                        "type": "SecureString",
+                        "value": "[parameters('LS_dataengineering_ADLS_accountKey')]"
+                    }
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/LS_dataengineering_ADB')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "type": "AzureDatabricks",
+                "typeProperties": {
+                    "domain": "https://adb-122281194194836.16.azuredatabricks.net",
+                    "authentication": "MSI",
+                    "workspaceResourceId": "/subscriptions/bed8257f-978d-4a63-a1a3-96a2ef106f32/resourceGroups/DataEngineering-PRD/providers/Microsoft.Databricks/workspaces/adb-dataengineering-prd",
+                    "existingClusterId": "[parameters('LS_dataengineering_ADB_properties_typeProperties_existingClusterId')]"
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ingestion')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "CP_Channel_Group_Raw",
+                        "type": "Copy",
+                        "dependsOn": [],
+                        "policy": {
+                            "timeout": "0.12:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [
+                            {
+                                "name": "Source",
+                                "value": "beverage-datalake/landing-zone/abi_bus_case1_beverage_channel_group_20210726.csv"
+                            },
+                            {
+                                "name": "Destination",
+                                "value": "beverage-datalake/raw/channel_group/"
+                            }
+                        ],
+                        "typeProperties": {
+                            "source": {
+                                "type": "DelimitedTextSource",
+                                "storeSettings": {
+                                    "type": "AzureBlobFSReadSettings",
+                                    "recursive": true,
+                                    "enablePartitionDiscovery": false
+                                },
+                                "formatSettings": {
+                                    "type": "DelimitedTextReadSettings"
+                                }
+                            },
+                            "sink": {
+                                "type": "ParquetSink",
+                                "storeSettings": {
+                                    "type": "AzureBlobFSWriteSettings",
+                                    "copyBehavior": "FlattenHierarchy"
+                                },
+                                "formatSettings": {
+                                    "type": "ParquetWriteSettings"
+                                }
+                            },
+                            "enableStaging": false,
+                            "translator": {
+                                "type": "TabularTranslator",
+                                "mappings": [
+                                    {
+                                        "source": {
+                                            "name": "TRADE_CHNL_DESC",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "trade_chnl_desc",
+                                            "physicalType": "UTF8"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "TRADE_GROUP_DESC",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "trade_group_desc",
+                                            "physicalType": "UTF8"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "TRADE_TYPE_DESC",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "trade_type_desc",
+                                            "physicalType": "UTF8"
+                                        }
+                                    }
+                                ],
+                                "typeConversion": true,
+                                "typeConversionSettings": {
+                                    "allowDataTruncation": true,
+                                    "treatBooleanAsNumber": false
+                                }
+                            }
+                        },
+                        "inputs": [
+                            {
+                                "referenceName": "ADSL_Channel_Group",
+                                "type": "DatasetReference",
+                                "parameters": {}
+                            }
+                        ],
+                        "outputs": [
+                            {
+                                "referenceName": "ADSL_Destination_CG_Parquet",
+                                "type": "DatasetReference",
+                                "parameters": {}
+                            }
+                        ]
+                    },
+                    {
+                        "name": "CP_Sales_Raw",
+                        "type": "Copy",
+                        "dependsOn": [],
+                        "policy": {
+                            "timeout": "0.12:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "source": {
+                                "type": "DelimitedTextSource",
+                                "storeSettings": {
+                                    "type": "AzureBlobFSReadSettings",
+                                    "recursive": true,
+                                    "enablePartitionDiscovery": false
+                                },
+                                "formatSettings": {
+                                    "type": "DelimitedTextReadSettings"
+                                }
+                            },
+                            "sink": {
+                                "type": "ParquetSink",
+                                "storeSettings": {
+                                    "type": "AzureBlobFSWriteSettings",
+                                    "copyBehavior": "MergeFiles"
+                                },
+                                "formatSettings": {
+                                    "type": "ParquetWriteSettings"
+                                }
+                            },
+                            "enableStaging": false,
+                            "translator": {
+                                "type": "TabularTranslator",
+                                "mappings": [
+                                    {
+                                        "source": {
+                                            "name": "DATE",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "date",
+                                            "physicalType": "UTF8"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "CE_BRAND_FLVR",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "ce_brand_flvr",
+                                            "physicalType": "UTF8"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "BRAND_NM",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "brand_nm",
+                                            "physicalType": "UTF8"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "Btlr_Org_LVL_C_Desc",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "btlr_org_lvl_c_desc",
+                                            "physicalType": "UTF8"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "CHNL_GROUP",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "chnl_group",
+                                            "physicalType": "UTF8"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "TRADE_CHNL_DESC",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "trade_chnl_desc",
+                                            "physicalType": "UTF8"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "PKG_CAT",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "pkg_cat",
+                                            "physicalType": "UTF8"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "Pkg_Cat_Desc",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "pkg_cat_desc",
+                                            "physicalType": "UTF8"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "TSR_PCKG_NM",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "tsr_pckg_nm",
+                                            "physicalType": "UTF8"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "$ Volume",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "$_volume",
+                                            "physicalType": "UTF8"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "YEAR",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "year",
+                                            "physicalType": "UTF8"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "MONTH",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "month",
+                                            "physicalType": "UTF8"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "PERIOD",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "period",
+                                            "physicalType": "UTF8"
+                                        }
+                                    }
+                                ],
+                                "typeConversion": true,
+                                "typeConversionSettings": {
+                                    "allowDataTruncation": true,
+                                    "treatBooleanAsNumber": false
+                                }
+                            }
+                        },
+                        "inputs": [
+                            {
+                                "referenceName": "ADSL_Source_Sales",
+                                "type": "DatasetReference",
+                                "parameters": {}
+                            }
+                        ],
+                        "outputs": [
+                            {
+                                "referenceName": "ADSL_Destination_Parquet",
+                                "type": "DatasetReference",
+                                "parameters": {}
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Remove_File_Input_Channel_Group",
+                        "type": "Delete",
+                        "dependsOn": [
+                            {
+                                "activity": "CP_Channel_Group_Raw",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "policy": {
+                            "timeout": "0.12:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "dataset": {
+                                "referenceName": "ADSL_Channel_Group",
+                                "type": "DatasetReference",
+                                "parameters": {}
+                            },
+                            "logStorageSettings": {
+                                "linkedServiceName": {
+                                    "referenceName": "LS_dataengineering_ADLS",
+                                    "type": "LinkedServiceReference"
+                                },
+                                "path": "landing-zone/landing"
+                            },
+                            "enableLogging": true,
+                            "storeSettings": {
+                                "type": "AzureBlobFSReadSettings",
+                                "recursive": true,
+                                "enablePartitionDiscovery": false
+                            }
+                        }
+                    },
+                    {
+                        "name": "Remove_File_Input_Sales",
+                        "type": "Delete",
+                        "dependsOn": [
+                            {
+                                "activity": "CP_Sales_Raw",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "policy": {
+                            "timeout": "0.12:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "dataset": {
+                                "referenceName": "ADSL_Source_Sales",
+                                "type": "DatasetReference",
+                                "parameters": {}
+                            },
+                            "logStorageSettings": {
+                                "linkedServiceName": {
+                                    "referenceName": "LS_dataengineering_ADLS",
+                                    "type": "LinkedServiceReference"
+                                },
+                                "path": "landing-zone/landing"
+                            },
+                            "enableLogging": true,
+                            "storeSettings": {
+                                "type": "AzureBlobFSReadSettings",
+                                "recursive": true,
+                                "enablePartitionDiscovery": false
+                            }
+                        }
+                    },
+                    {
+                        "name": "ADB_Job_Ingestion_Beverage",
+                        "type": "DatabricksJob",
+                        "dependsOn": [
+                            {
+                                "activity": "CP_Channel_Group_Raw",
+                                "dependencyConditions": [
+                                    "Completed"
+                                ]
+                            },
+                            {
+                                "activity": "CP_Sales_Raw",
+                                "dependencyConditions": [
+                                    "Completed"
+                                ]
+                            }
+                        ],
+                        "policy": {
+                            "timeout": "0.12:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "jobId": "146226070783677"
+                        },
+                        "linkedServiceName": {
+                            "referenceName": "LS_dataengineering_ADB",
+                            "type": "LinkedServiceReference"
+                        }
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {}
+                },
+                "annotations": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/datasets/ADSL_Channel_Group')]",
+                "[concat(variables('factoryId'), '/datasets/ADSL_Destination_CG_Parquet')]",
+                "[concat(variables('factoryId'), '/datasets/ADSL_Source_Sales')]",
+                "[concat(variables('factoryId'), '/datasets/ADSL_Destination_Parquet')]",
+                "[concat(variables('factoryId'), '/linkedServices/LS_dataengineering_ADB')]",
+                "[concat(variables('factoryId'), '/linkedServices/LS_dataengineering_ADLS')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ADSL_Channel_Group')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "LS_dataengineering_ADLS",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "abi_bus_case1_beverage_channel_group_20210726.csv",
+                        "folderPath": "landing",
+                        "fileSystem": "landing-zone"
+                    },
+                    "columnDelimiter": ",",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": [
+                    {
+                        "name": "TRADE_CHNL_DESC",
+                        "type": "String"
+                    },
+                    {
+                        "name": "TRADE_GROUP_DESC",
+                        "type": "String"
+                    },
+                    {
+                        "name": "TRADE_TYPE_DESC",
+                        "type": "String"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/LS_dataengineering_ADLS')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ADSL_Source_Sales')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "LS_dataengineering_ADLS",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "abi_bus_case1_beverage_sales_20210726.csv",
+                        "folderPath": "landing",
+                        "fileSystem": "landing-zone"
+                    },
+                    "columnDelimiter": "\t",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": [
+                    {
+                        "name": "DATE",
+                        "type": "String"
+                    },
+                    {
+                        "name": "CE_BRAND_FLVR",
+                        "type": "String"
+                    },
+                    {
+                        "name": "BRAND_NM",
+                        "type": "String"
+                    },
+                    {
+                        "name": "Btlr_Org_LVL_C_Desc",
+                        "type": "String"
+                    },
+                    {
+                        "name": "CHNL_GROUP",
+                        "type": "String"
+                    },
+                    {
+                        "name": "TRADE_CHNL_DESC",
+                        "type": "String"
+                    },
+                    {
+                        "name": "PKG_CAT",
+                        "type": "String"
+                    },
+                    {
+                        "name": "Pkg_Cat_Desc",
+                        "type": "String"
+                    },
+                    {
+                        "name": "TSR_PCKG_NM",
+                        "type": "String"
+                    },
+                    {
+                        "name": "$ Volume",
+                        "type": "String"
+                    },
+                    {
+                        "name": "YEAR",
+                        "type": "String"
+                    },
+                    {
+                        "name": "MONTH",
+                        "type": "String"
+                    },
+                    {
+                        "name": "PERIOD",
+                        "type": "String"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/LS_dataengineering_ADLS')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ADSL_Destination_CG_Parquet')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "LS_dataengineering_ADLS",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "folderPath": "raw/channel_group",
+                        "fileSystem": "landing-zone"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/LS_dataengineering_ADLS')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ADSL_Destination_Parquet')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "LS_dataengineering_ADLS",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "folderPath": "raw/sales",
+                        "fileSystem": "landing-zone"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/LS_dataengineering_ADLS')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ADSL_Destination_ChannelGroup')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "LS_dataengineering_ADLS",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "folderPath": "raw/channel_group",
+                        "fileSystem": "beverage-datalake"
+                    },
+                    "columnDelimiter": ",",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": [
+                    {
+                        "name": "TRADE_CHNL_DESC",
+                        "type": "String"
+                    },
+                    {
+                        "name": "TRADE_GROUP_DESC",
+                        "type": "String"
+                    },
+                    {
+                        "name": "TRADE_TYPE_DESC",
+                        "type": "String"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/LS_dataengineering_ADLS')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ADSL_Destination_Sales')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "LS_dataengineering_ADLS",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "folderPath": "raw/sales",
+                        "fileSystem": "beverage-datalake"
+                    },
+                    "columnDelimiter": ",",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": [
+                    {
+                        "name": "DATE\tCE_BRAND_FLVR\tBRAND_NM\tBtlr_Org_LVL_C_Desc\tCHNL_GROUP\tTRADE_CHNL_DESC\tPKG_CAT\tPkg_Cat_Desc\tTSR_PCKG_NM\t$ Volume\tYEAR\tMONTH\tPERIOD",
+                        "type": "String"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/LS_dataengineering_ADLS')]"
+            ]
+        }
+    ]
+}

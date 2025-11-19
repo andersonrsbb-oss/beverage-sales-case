@@ -1,0 +1,24 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "factoryName": {
+            "value": "adf-dataengineering-prd"
+        },
+        "LS_dataengineering_ADLS_accountKey": {
+            "value": ""
+        },
+        "LS_dataengineering_ADLS_properties_typeProperties_url": {
+            "value": "https://adlsdataengineeringprd.dfs.core.windows.net/"
+        },
+        "LS_dataengineering_ADB_properties_typeProperties_existingClusterId": {
+            "value": "1118-001621-1nzk7btu"
+        },
+        "containerUri": {
+            "value": ""
+        },
+        "containerSasToken": {
+            "value": ""
+        }
+    }
+}
