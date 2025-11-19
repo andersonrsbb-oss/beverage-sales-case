@@ -36,5 +36,5 @@ fact_sales = (
     )
     .agg(f.sum('price_volume').alias('price_volume'))
 )
-# fact_sales.count()
+
 fact_sales.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable('hive_metastore.beverage_gold.gld_tab_fact_sales')

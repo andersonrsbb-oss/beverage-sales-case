@@ -46,7 +46,6 @@ df_renamed = (
         f.col("bronze_ingestion_timestamp").alias("dt_bronze_ingestion_timestamp"),
     )
 )
-# display(df_renamed)
 
 # COMMAND ----------
 
@@ -113,8 +112,3 @@ df_sales_final = (
 # COMMAND ----------
 
 df_sales_final.write.mode("overwrite").saveAsTable("hive_metastore.beverage_silver.slv_tab_sales")
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC select * from hive_metastore.beverage_silver.slv_tab_sales

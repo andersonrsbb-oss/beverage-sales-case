@@ -13,8 +13,3 @@ df_channel_group = spark.read.parquet('/mnt/adlsdataengineeringprd/beverage-data
 df_channel_group = df_channel_group.withColumn('bronze_ingestion_timestamp', current_timestamp())
 
 df_channel_group.write.mode('overwrite').format('delta').saveAsTable('hive_metastore.beverage_bronze.brz_tab_channel_group')
-
-# COMMAND ----------
-
-# %sql
-# select * from catalog_beverage.beverage_bronze.brz_tab_channel_group

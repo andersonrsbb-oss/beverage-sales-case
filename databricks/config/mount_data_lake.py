@@ -15,10 +15,6 @@ configs = {"fs.azure.account.auth.type": "OAuth",
 "fs.azure.account.oauth2.client.secret": f"{client_secret}",
 "fs.azure.account.oauth2.client.endpoint": f"https://login.microsoftonline.com/{tenant_id}/oauth2/token"}
 
-
-# dbtuils.fs.mount( source = "", mount_point = 'mnt/caminho...', extra_configs = {})
-
-
 # COMMAND ----------
 
 def mount_adls(container_name):
